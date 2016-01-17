@@ -1,3 +1,3 @@
-* A sound fx catalog management application in django/python
+# A sound fx catalog management application in django/python
 
-** Initial commit
+## Initial commit
