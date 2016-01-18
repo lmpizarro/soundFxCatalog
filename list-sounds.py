@@ -21,10 +21,60 @@ except NameError:
     pass
 
 
+class Discover_Files(object):
+
+    def __init__(self, root_dir, first_level_dir='./', files_extensions=['mp3', 'wav', 'aif', 'ogg']):
+        self.root_dir = root_dir
+	self.first_level_dir = first_level_dir
+	self.files_extensions = files_extensions
+	self.files_directory = self.root_dir 
+	self.file_list =[]
+	self.counter = 0
+
+
+    def get_paths(self):
+        # Get the absolute path of the movie_directory parameter
+        movie_directory = os.path.abspath(self.files_directory)
+
+        # Get a list of files in movie_directory
+        movie_directory_files = os.listdir(movie_directory)
+
+        # Traverse through all files
+        for filename in movie_directory_files:
+            filepath = os.path.join(movie_directory, filename)
+
+            # Check if it's a normal file or directory
+            if os.path.isfile(filepath):
+
+                # Check if the file has an extension of typical video files
+                for movie_extension in self.files_extensions:
+                    # Not a movie file, ignore
+                    if not filepath.endswith(movie_extension):
+                        continue
+
+                    # We have got a video file! Increment the counter
+                    self.counter += 1
+		    library = re.sub(self.root_dir,'',filepath).strip()
+		    head, tail = os.path.split(library)
+
+
+		    self.file_list.append({'path':'{0}'.format(filepath),
+				           'library': head, 
+				           'file_size':os.path.getsize(filepath), 
+				           'filename':tail,
+                                           'root_dir' :self.root_dir, 
+			                  })
+
+            elif os.path.isdir(filepath):
+                # We got a directory, enter into it for further processing
+		self.files_directory = filepath
+                self.get_paths()
+
+
 ROOT_DIR = None
 
 sound_list = []
-def print_movie_files(movie_directory, movie_extensions=['mp3', 'wav', 'aif', 'ogg']):
+def discover_audio_files(movie_directory, movie_extensions=['mp3', 'wav', 'aif', 'ogg']):
     ''' Print files in movie_directory with extensions in movie_extensions, recursively. '''
 
     # Get the absolute path of the movie_directory parameter
@@ -47,7 +97,7 @@ def print_movie_files(movie_directory, movie_extensions=['mp3', 'wav', 'aif', 'o
                     continue
 
                 # We have got a video file! Increment the counter
-                print_movie_files.counter += 1
+                discover_audio_files.counter += 1
 
 
                 try:
@@ -77,12 +127,11 @@ def print_movie_files(movie_directory, movie_extensions=['mp3', 'wav', 'aif', 'o
 
         elif os.path.isdir(filepath):
             # We got a directory, enter into it for further processing
-            print_movie_files(filepath)
+            discover_audio_files(filepath)
 
 
 
-if __name__ == '__main__':
-
+def test_discover_audio_files():
     # Directory argument supplied, check and use if it's a directory
     if len(sys.argv) == 2:
         if os.path.isdir(sys.argv[1]):
@@ -99,14 +148,14 @@ if __name__ == '__main__':
     print('\n -- Looking for movies in "{0}" --\n'.format(movie_directory))
 
     # Set the number of processed files equal to zero
-    print_movie_files.counter = 0
+    discover_audio_files.counter = 0
 
     # Start Processing
-    print_movie_files(movie_directory)
+    discover_audio_files(movie_directory)
     print (sound_list[0:40])
     # We are done. Exit now.
     print('\n -- {0} Movie File(s) found in directory {1} --'.format \
-            (print_movie_files.counter, movie_directory))
+            (discover_audio_files.counter, movie_directory))
     print('\nPress ENTER to exit!')
 
     # Wait until the user presses enter/return, or <CTRL-C>
@@ -115,3 +164,9 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         exit(0)
 
+if __name__ == '__main__':
+
+    DF = Discover_Files("/media/usb0/Sonidos" )
+    DF.get_paths()
+
+    print DF.file_list
