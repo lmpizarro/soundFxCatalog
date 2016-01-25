@@ -7,15 +7,15 @@ class Location(object):
     '''
     <Location id="295" name="range_1" start="42840" end="176400" flags="IsRangeMarker" locked="no" position-lock-style="AudioTime"/>
     '''
-    id_ = 0
-    name = "mark1"
-    start = 0
-    end = 0
-    flags = []
-    locked = "no"
-    positionLockStyle="AudioTime"
 
-    def __init__(self, name, start, end, flags=["IsRangeMark",]):
+    def __init__(self, name, start, end, flags=["IsRangeMarker"]):
+        self.id_ = 0
+        self.name = "mark1"
+        self.start = 0
+        self.end = 0
+        self.locked = "no"
+        self.positionLockStyle="AudioTime"
+        self.flags = []
         for f in flags:
             if f in FLAGS:
                 self.flags.append(f)
@@ -29,12 +29,18 @@ class Location(object):
     def setId(self, id):
         self.id = id
 
+    def flagsToString(self):
+        str_ = ''	    
+        for l in self.flags:
+            str_ += l + ','
+        return (str_)	    
+
     def __repr__ (self):
 	str_  = 'id= ' + str(self.id) 
         str_ += ' name= ' + self.name 
 	str_ += ' start= ' + str(self.start) 
 	str_ += ' end= ' + str(self.end)  
-	str_ += ' flags= '  + self.flags 
+	str_ += ' flags= '  + self.flagsToString() 
 	str_ += ' locked='  + self.locked 
 	str_ += ' position-lock-style='  + self.positionLockStyle 
 	str_ += ' \n'    
@@ -44,10 +50,7 @@ class Location(object):
 class Range(Location):
 
     def __init__(self, name, start, end):
-	self.name = name    
-        self.flags = 'IsRangeMarker'
-	self.start = start
-	self.end = end
+        Location.__init__(self, name, start, end)
 
 class ToSamples(object):
     def __init__(self, sr=44100, fps=24):
