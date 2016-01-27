@@ -42,8 +42,8 @@ class Location(object):
         return (str_)
 
     def __repr__(self):
-        str_ = 'id= ' + str(self.id)
-        str_ += ' name= ' + self.name
+        str_ = 'id= ' + str(self._id)
+        str_ += ' name= ' + self._name
         str_ += ' start= ' + str(self.start)
         str_ += ' end= ' + str(self.end)
         str_ += ' flags= ' + self.flagsToString()
@@ -73,6 +73,18 @@ class Location(object):
     def delName(self):
         del self._name
 
+    def getAttrib(self):
+        attrib = {}
+	attrib['name'] = self._name 
+	attrib['start'] = str(self.start)
+        attrib['end'] = str(self.end)
+        attrib['id'] =  str(self._id)
+	attrib['position-lock-style']='AudioTime'
+        attrib['locked'] = self._locked 
+        attrib['flags'] = self.flagsToString()
+	return attrib
+
+
     name = property(getName, setName, delName, "name property docs")
     id = property(getId, setId, delId, "id property docs")
     locked = property(getLocked, setLocked, delLocked, "locked property docs")
@@ -82,6 +94,10 @@ class Range(Location):
 
     def __init__(self, name, start, end):
         Location.__init__(self, name, start, end)
+
+    def setName(self, value):
+	self.name = 'range'
+        self._name +=  str(value)
 
 
 class ToSamples(object):
@@ -154,9 +170,10 @@ class Movie(object):
         list_Range = []
         for i, l in enumerate(self.list_Adr):
             rg = l.getRange()
-            rg.name = 'lll' + str(rg.id)
             rg.setId(i + 1)
+            rg.setName (str(rg.id))
             list_Range.append(rg)
+	    rg.setLocked(True)
         return list_Range
 
     def readAdrs(self, fileName):
@@ -171,33 +188,41 @@ class Movie(object):
                 text = dat[2]
                 self.addAdr(tc_range, text)
 
+from xml.etree.ElementTree import parse
+import xml.etree.ElementTree as etree
+
+class toArdour:
+
+    def __init__(self, ardour_config):	
+        self.ardour_config = ardour_config
+        self.tree = parse(ardour_config)
+
+        self.locations = self.tree.findall('Locations')
+
+    def rangeEdls(self, list_adr):
+        for l in list_adr:    
+            a=etree.SubElement(self.locations[0],'Location')
+            a.attrib = l.getAttrib()
+
+    def write(self, name):
+        self.tree.write(name)
+
 
 if __name__ == '__main__':
 
-    ts = ToSamples()
-    loc = Range("mark1", 100000, 144100)
-    print loc.flags
-    print ts.fps
-    print int(ts.convert(ts.hhmmssfftolist('1:23:32:10')))
-
-    try:
-        import lxml as etree
-        print "lxml"
-    except ImportError:
-        import xml.etree.ElementTree as etree
-
     ardour_config = "/media/usb0/ardour/testingMarkers/testingMarkers.ardour"
-    tree = etree.parse(ardour_config)
-    root = tree.getroot()
-    locs = root.findall('Locations')
-
-    for lcs in locs[0]:
-        print lcs
-
     mv = Movie("lo inmediato", 44100, 25)
     mv.addAdr(['1:1:2:4', '1:1:32:21'], "hola mundo Adr")
     mv.addAdr(['0:1:2:4', '0:1:32:21'], "hola todo bien?")
     mv.addAdr(['0:10:2:4', '0:10:32:21'], "No hay todo bien?")
     mv.readAdrs("adr_list.csv")
-    print mv.toRanges()
-    print mv
+    ranges = mv.toRanges()
+
+
+    for r in ranges:
+        print r.getAttrib()
+
+
+    tL = toArdour(ardour_config)
+    tL.rangeEdls(ranges)
+    tL.write('papa.xml')
