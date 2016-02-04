@@ -1,11 +1,80 @@
 import lxml.etree as etree
 
 
+def append(inp, in_d):
+    for e in in_d['elements']:
+        ce = etree.Element(e['element'], attrib=e['attrib'])
+        if e['text'] != '':
+            ce.text = e['text']
+        inp.append(ce)
+        append(ce, e)
+
+
+def createXML(in_d):
+    inp_ = etree.Element(in_d['element'], attrib=in_d['attrib'])
+
+    append(inp_, in_d)
+    return inp_
+
+
+def writeQe(inp_, filename):
+    str_ = '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
+    str_ += (etree.tounicode(inp_, pretty_print=True))
+    print str_
+
+    f = open(filename, 'w')
+
+    f.write(str_)
+
+    f.close()
+
+
+class qeError(Exception):
+    pass
+
+
 def getDict(element, attrib, elements, text=''):
     dict_ = {'element': element, 'attrib': attrib,
              'elements': elements, 'text': text}
     return dict_
 
+# field Options
+
+
+def setOccupations(val):
+    str_d = getDict('string', {}, [], val)
+    return getDict('parameter', {'name': 'occupations'}, [str_d])
+
+
+def setSmearing(val):
+    str_d = getDict('string', {}, [], val)
+    return getDict('parameter', {'name': 'smearing'}, [str_d])
+
+
+def setDegauss(val):
+    str_d = getDict('real', {}, [], str(val))
+    return getDict('parameter', {'name': 'degauss'}, [str_d])
+
+
+class Options:
+
+    def getVals(self, dict_):
+
+        keys = dict_.keys()
+
+        list_r = []
+        for k in keys:
+            if k == 'occupations':
+                list_r.append(setOccupations(dict_[k]))
+            elif k == 'smearing':
+                list_r.append(setSmearing(dict_[k]))
+            elif k == 'degauss':
+                list_r.append(setDegauss(dict_[k]))
+
+        return getDict('field', {'name': 'Options'}, list_r)
+
+
+# field  InputOuput
 
 def setRestartMode(mode):
     str_d = getDict('string', {}, [], mode)
@@ -33,6 +102,29 @@ def setTprnfor(bool_):
     str_d = getDict('logical', {}, [], bool_)
     return getDict('parameter', {'name': 'tprnfor'}, [str_d])
 
+
+class InputOutput:
+
+    def getVals(self, dict_):
+
+        keys = dict_.keys()
+
+        list_r = []
+        for k in keys:
+            if k == 'restart_mode':
+                list_r.append(setRestartMode(dict_[k]))
+            elif k == 'pseudodir':
+                list_r.append(setPseudoDir(dict_[k]))
+            elif k == 'outdir':
+                list_r.append(setOutDir(dict_[k]))
+            elif k == 'tstress':
+                list_r.append(setTstress(dict_[k]))
+            elif k == 'tprnfor':
+                list_r.append(setTprnfor(dict_[k]))
+        return getDict('field', {'name': 'InputOutput'}, list_r)
+
+
+# field Numerics
 
 def setEcutWfc(ecut):
     ''' ecutwfc: kinetic energy cutoff for WAVEFUNCTION [in Ry] '''
@@ -98,38 +190,20 @@ class Numerics:
         return getDict('field', {'name': 'Numerics'}, list_r)
 
 
-class InputOutput:
-
-    def getVals(self, dict_):
-
-        keys = dict_.keys()
-
-        list_r = []
-        for k in keys:
-            if k == 'restart_mode':
-                list_r.append(setRestartMode(dict_[k]))
-            elif k == 'pseudodir':
-                list_r.append(setPseudoDir(dict_[k]))
-            elif k == 'outdir':
-                list_r.append(setOutDir(dict_[k]))
-            elif k == 'tstress':
-                list_r.append(setTstress(dict_[k]))
-            elif k == 'tprnfor':
-                list_r.append(setTprnfor(dict_[k]))
-        return getDict('field', {'name': 'InputOutput'}, list_r)
-
-
 def setFields(fd):
 
     fd_num = fd['numerics']
     fd_io = fd['inputoutput']
+    fd_opts = fd['options']
 
     nums = Numerics()
     inout = InputOutput()
+    opts = Options()
     fnums = nums.getVals(fd['numerics'])
     fios = inout.getVals(fd['inputoutput'])
+    fopts = opts.getVals(fd_opts)
 
-    return (fios, fnums)
+    return (fios, fnums, fopts)
 
 
 def setPosition(name, pos):
@@ -147,27 +221,6 @@ def setAtomicList(positions):
     return al_d
 
 
-def writeQe(inp_, filename):
-    str_ = '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
-    str_ += (etree.tounicode(inp_, pretty_print=True))
-    print str_
-
-    f = open(filename, 'w')
-
-    f.write(str_)
-
-    f.close()
-
-
-def append(inp, in_d):
-    for e in in_d['elements']:
-        ce = etree.Element(e['element'], attrib=e['attrib'])
-        if e['text'] != '':
-            ce.text = e['text']
-        inp.append(ce)
-        append(ce, e)
-
-
 def setCell(ibrav, alat, celldm):
     celldm_ = ''
     for c in celldm:
@@ -179,10 +232,6 @@ def setCell(ibrav, alat, celldm):
     return ce_d
 
 
-class qeError(Exception):
-    pass
-
-
 def setInput(calculation, prefix, elements):
     if calculation not in ['scf']:
         raise qeError("Calculation error")
@@ -192,41 +241,35 @@ def setInput(calculation, prefix, elements):
     return in_d
 
 
-def createXML(in_d):
-    inp_ = etree.Element(in_d['element'], attrib=in_d['attrib'])
-
-    append(inp_, in_d)
-    return inp_
-
-
-def setSpecie_(name, pseudofile, mass):
-
-    re1_d = getDict('real', {'rank': '0', 'n1': '0', 'n2': '0'}, [], str(mass))
-    str_d = getDict('string', {}, [], pseudofile)
-    p1_d = getDict('property', {'name': 'mass'}, [re1_d])
-    p2_d = getDict('property', {'name': 'pseudofile'}, [str_d])
-    sp_d = getDict('specie',  {'name': name}, [p1_d, p2_d])
-
-    return sp_d
-
-
-def setSpecies(especies_list):
-
-    l_e = []
-
-    for e in especies_list:
-        mass = e['mass']
-        pseudofile = e['pseudofile']
-        name = e['name']
-
-        l_e.append(setSpecie_(name, pseudofile, mass))
-
-    return l_e
-
-
 def setAtomicSpecies(especies_list):
+    def setSpecie_(name, pseudofile, mass):
+
+        re1_d = getDict(
+            'real', {'rank': '0', 'n1': '0', 'n2': '0'}, [], str(mass))
+        str_d = getDict('string', {}, [], pseudofile)
+        p1_d = getDict('property', {'name': 'mass'}, [re1_d])
+        p2_d = getDict('property', {'name': 'pseudofile'}, [str_d])
+        sp_d = getDict('specie',  {'name': name}, [p1_d, p2_d])
+
+        return sp_d
+
+    def setSpecies(especies_list):
+
+        l_e = []
+
+        for e in especies_list:
+            mass = e['mass']
+            pseudofile = e['pseudofile']
+            name = e['name']
+
+            l_e.append(setSpecie_(name, pseudofile, mass))
+
+        return l_e
+
     ''' ntyp: number of types of atoms in the unit cell '''
-    ae_d = getDict('atomic_species',  {'ntyp': '1'}, setSpecies(especies_list))
+    ntyp = len(especies_list)
+    ae_d = getDict('atomic_species',  {
+                   'ntyp': str(ntyp)}, setSpecies(especies_list))
     return ae_d
 
 
@@ -259,16 +302,21 @@ if __name__ == '__main__':
         'pseudodir': '/home/lmpizarro/python/materiales/espresso-5.2.1/atomic/examples/pseudo-LDA-0.5/',
         'outdir': '/home/lmpizarro/tmp',
         'tstress': 'True',
-        'tprnfor': 'True'}}
+        'tprnfor': 'True'},
+        'options': {
+        'occupations': 'smearing',
+        'smearing': 'marzari-vanderbilt',
+        'degauss': 0.05
+    }}
 
-    (inout, nums) = setFields(fd)
+    (inout, nums, opts) = setFields(fd)
 
     especies = [{'name': 'Si', 'pseudofile': 'Si.pz-vbc.UPF', 'mass': 28.086},
                 {'name': 'Al', 'pseudofile': 'Al.pz-vbc.UPF', 'mass': 18.086}]
 
     ae_d = setAtomicSpecies(especies)
 
-    k_p_d = setK_points('automatic', [1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+    k_p_d = setK_points('automatic', [1, 1, 1, 1, 1, 1])
 
     pos_si1 = setPosition('Si', [0.0, 0.0, 0.0])
     pos_si2 = setPosition('Al', [0.25, 0.25, 0.25])
@@ -277,7 +325,8 @@ if __name__ == '__main__':
 
     ce_d = setCell(2, 10.2, [0.0, 0.0, 0.0, 0.0, 0.0, ])
 
-    in_d = setInput('scf', 'silicon', [ce_d, ae_d, al_d, inout, nums, k_p_d])
+    in_d = setInput('scf', 'silicon', [
+                    ce_d, ae_d, al_d, inout, nums, opts, k_p_d])
 
     QExmlTree = createXML(in_d)
 
