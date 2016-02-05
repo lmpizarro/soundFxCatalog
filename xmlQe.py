@@ -289,7 +289,7 @@ def setK_points(type_, data):
     return k_p_d
 
 
-if __name__ == '__main__':
+def test_scf():
     fd = {'numerics': {
         'ecutWfc': 18.0,
         'diagonalization': 'cg',
@@ -331,3 +331,81 @@ if __name__ == '__main__':
     QExmlTree = createXML(in_d)
 
     writeQe(QExmlTree, 'si.xml')
+
+
+class CP:
+    cp_types = {
+        'nstep': 'integer',
+        'dt': 'real',
+        'ion_dynamics': 'string',
+        'isave': 'integer',
+        'nr1b': 'integer',
+        'nr2b': 'integer',
+        'nr3b': 'integer',
+        'electron_dynamics': 'string',
+        'electron_damping': 'real',
+        'emass': 'real',
+        'emass_cutoff': 'real',
+        'ndr': 'integer',
+        'ndw': 'integer',
+        'ampre': 'real'
+    }
+
+    def setParameter(self, val, name, type_):
+        str_d = getDict(type_, {}, [], val)
+        return getDict('parameter', {'name': name}, [str_d])
+
+    def getVals(self, cp_params):
+        cp_keys = cp_params.keys()
+
+        list_r = []
+        for k in cp_keys:
+            p_d = self.setParameter(cp_params[k], k, self.cp_types[k])
+            list_r.append(p_d)
+        return list_r
+
+
+def test_cp():
+    fd = {'numerics': {
+        'ecutWfc': 18.0,
+        'diagonalization': 'cg',
+        'mixing_mode': 'plain',
+        'mixing_beta': 0.7,
+        'convthreshold': 1.0E-8,
+    },
+        'inputoutput': {
+        'restart_mode': 'from_scratch',
+            'pseudodir': '/home/lmpizarro/python/materiales/espresso-5.2.1/atomic/examples/pseudo-LDA-0.5/',
+            'outdir': '/home/lmpizarro/tmp',
+            'tstress': 'True',
+            'tprnfor': 'True'},
+        'options': {
+        'occupations': 'smearing',
+            'smearing': 'marzari-vanderbilt',
+            'degauss': 0.05},
+        'cp': {
+        'nstep': 20,
+        'dt': 5.0,
+        'ion_dynamics': 'none',
+        'isave': 20,
+        'nr1b': 16,
+        'nr2b': 16,
+        'nr3b': 16,
+        'electron_dynamics': 'damp',
+        'electron_damping': 0.2,
+        'emass': 700.0,
+        'emass_cutoff': 3.0,
+        'ndr': 90,
+        'ndw': 91,
+        'ampre': 0.01
+    }
+    }
+
+    cp = CP()
+
+    cp_params = fd['cp']
+
+    print cp.getVals(cp_params)
+
+if __name__ == '__main__':
+    test_scf()
