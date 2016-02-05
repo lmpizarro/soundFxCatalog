@@ -1,16 +1,59 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from __future__ import division 
+from __future__ import division
 
 import os
 import sys
 
-qeXmlLibPath = os.path.abspath('/home/lmpizarro/python/djangoApps/soundFxDb/qeXml/lib')
+qeXmlLibPath = os.path.abspath(
+    '/home/lmpizarro/python/djangoApps/soundFxDb/qeXml/lib')
 sys.path.append(qeXmlLibPath)
 
-import xmlQe  as xq
+import xmlQe as xq
+
+
+def setFields(fd):
+
+    fd_num = fd['numerics']
+    fd_io = fd['inputoutput']
+    fd_opts = fd['options']
+
+    nums = xq.Numerics()
+    inout = xq.InputOutput()
+    opts = xq.Options()
+    fnums = nums.getField(fd['numerics'])
+    fios = inout.getField(fd['inputoutput'])
+    fopts = opts.getField(fd_opts)
+
+    return (fios, fnums, fopts)
+
+k_points = {'type': 'tpiba', 'npoints': 10, 'text': '''
+0.1250000  0.1250000  0.1250000   1.00
+0.1250000  0.1250000  0.3750000   3.00
+0.1250000  0.1250000  0.6250000   3.00
+0.1250000  0.1250000  0.8750000   3.00
+0.1250000  0.3750000  0.3750000   3.00
+0.1250000  0.3750000  0.6250000   6.00
+0.1250000  0.3750000  0.8750000   6.00
+0.1250000  0.6250000  0.6250000   3.00
+0.3750000  0.3750000  0.3750000   1.00
+0.3750000  0.3750000  0.6250000   3.00'''}
+
 
 def example01():
+
+    PSEUDODIR = '/home/lmpizarro/python/materiales/espresso-5.2.1/atomic/examples/pseudo-LDA-0.5/'
+
+    PREFIX = 'silicon'
+
+    root_calc = os.getenv('HOME')
+
+    calc_dir = '/python/materiales/espresso/' + PREFIX
+    OUTDIR = os.path.abspath(root_calc + '/' + calc_dir + '/')
+
+    if os.path.isdir(OUTDIR) == False:
+        os.makedirs(OUTDIR)
+
     fd = {'numerics': {
         'ecutWfc': 18.0,
         'diagonalization': 'cg',
@@ -20,8 +63,8 @@ def example01():
     },
         'inputoutput': {
         'restart_mode': 'from_scratch',
-        'pseudodir': '/home/lmpizarro/python/materiales/espresso-5.2.1/atomic/examples/pseudo-LDA-0.5/',
-        'outdir': '/home/lmpizarro/tmp',
+        'pseudodir': PSEUDODIR,
+        'outdir': OUTDIR,
         'tstress': 'True',
         'tprnfor': 'True'},
         'options': {
@@ -30,24 +73,23 @@ def example01():
         'degauss': 0.05
     }}
 
-    (inout, nums, opts) = xq.setFields(fd)
+    (inout, nums, opts) = setFields(fd)
 
-    especies = [{'name': 'Si', 'pseudofile': 'Si.pz-vbc.UPF', 'mass': 28.086},
-                {'name': 'Al', 'pseudofile': 'Al.pz-vbc.UPF', 'mass': 13.086}]
+    especies = [{'name': 'Si', 'pseudofile': 'Si.pz-vbc.UPF', 'mass': 28.086}]
 
     ae_d = xq.setAtomicSpecies(especies)
 
-    k_p_d = xq.setK_points('automatic', [1, 1, 1, 1, 1, 1])
+    k_p_d = xq.setK_points(k_points)
 
     pos_si1 = xq.setPosition('Si', [0.0, 0.0, 0.0])
-    pos_si2 = xq.setPosition('Al', [0.25, 0.25, 0.25])
+    pos_si2 = xq.setPosition('Si', [0.25, 0.25, 0.25])
 
     al_d = xq.setAtomicList([pos_si1, pos_si2], 'alat')
 
     ce_d = xq.setCell(2, 10.2, [0.0, 0.0, 0.0, 0.0, 0.0, ])
 
-    in_d = xq.setInput('scf', 'silicon', [
-                    ce_d, ae_d, al_d, inout, nums, opts, k_p_d])
+    in_d = xq.setInput('scf', PREFIX, [
+        ce_d, ae_d, al_d, inout, nums, opts, k_p_d])
 
     QExmlTree = xq.createXML(in_d)
 

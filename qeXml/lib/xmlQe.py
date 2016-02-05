@@ -262,22 +262,6 @@ class Numerics:
         return getDict('field', {'name': 'Numerics'}, self.getVals(params))
 
 
-def setFields(fd):
-
-    fd_num = fd['numerics']
-    fd_io = fd['inputoutput']
-    fd_opts = fd['options']
-
-    nums = Numerics()
-    inout = InputOutput()
-    opts = Options()
-    fnums = nums.getField(fd['numerics'])
-    fios = inout.getField(fd['inputoutput'])
-    fopts = opts.getField(fd_opts)
-
-    return (fios, fnums, fopts)
-
-
 def setPosition(name, pos):
     str_pos = str(pos[0]) + ' ' + str(pos[1]) + ' ' + str(pos[2])
     re1_d = getDict('real', {'rank': '1', 'n1': '3', 'n2': '0'}, [], str_pos)
@@ -346,20 +330,41 @@ def setAtomicSpecies(especies_list):
     return ae_d
 
 
-def setK_points(type_, data):
-    if type_ not in ['automatic']:
+def setK_points(k_points):
+    type_ = k_points['type']
+
+    if type_ not in ['automatic', 'tpiba']:
         raise qeError('k_points bad type %s' % type_)
     else:
         if type_ == 'automatic':
-            str_ = ''
-            for d in data:
-                str_ += str(d) + ' '
-            int_ = getDict('integer', {'rank': '1', 'n1': '6'}, [], str_)
-            print 'ggg',  int_
+            int_ = getDict('integer', {'rank': '1', 'n1': '6'}, [], k_points['text'])
             m = getDict('mesh', {}, [int_])
             k_p_d = getDict('k_points',  {'type': type_}, [m])
+        elif type_ == 'tpiba':
+            int_ = getDict('real', {'rank': '2', 'n1': '4', 'n2':  str(k_points['npoints'])}, [], k_points['text'])
+            m = getDict('mesh', {'npoints': str(k_points['npoints'])}, [int_])
+            k_p_d = getDict('k_points',  {'type': type_}, [m])
+
 
     return k_p_d
+
+
+
+def setFields(fd):
+
+    fd_num = fd['numerics']
+    fd_io = fd['inputoutput']
+    fd_opts = fd['options']
+
+    nums = Numerics()
+    inout = InputOutput()
+    opts = Options()
+    fnums = nums.getField(fd['numerics'])
+    fios = inout.getField(fd['inputoutput'])
+    fopts = opts.getField(fd_opts)
+
+    return (fios, fnums, fopts)
+
 
 
 def test_scf():
@@ -385,11 +390,13 @@ def test_scf():
     (inout, nums, opts) = setFields(fd)
 
     especies = [{'name': 'Si', 'pseudofile': 'Si.pz-vbc.UPF', 'mass': 28.086},
-                {'name': 'Al', 'pseudofile': 'Al.pz-vbc.UPF', 'mass': 18.086}]
+                {'name': 'Al', 'pseudofile': 'Al.pz-vbc.UPF', 'mass': 13.086}]
 
     ae_d = setAtomicSpecies(especies)
 
-    k_p_d = setK_points('automatic', [1, 1, 1, 1, 1, 1])
+    k_points = {'type':'automatic','text':'1 1 1 1 1 1'}
+
+    k_p_d = setK_points(k_points)
 
     pos_si1 = setPosition('Si', [0.0, 0.0, 0.0])
     pos_si2 = setPosition('Al', [0.25, 0.25, 0.25])
@@ -419,7 +426,19 @@ def readPositions(filename):
     return pos
 
 
+import os
+
 def test_cp():
+    prefix = 'sio2cp'
+
+    root_calc = os.getenv('HOME')
+
+    calc_dir = '/python/materiales/espresso/' + prefix
+    calc_path = os.path.abspath(root_calc + '/' + calc_dir +'/')
+
+    if os.path.isdir(calc_path) == False:
+        os.makedirs(calc_path)
+
     fd = {'numerics': {
         'ecutWfc': 20.0,
         'ecutrho': 150.0,
@@ -427,7 +446,7 @@ def test_cp():
         'inputoutput': {
         'restart_mode': 'from_scratch',
         'pseudodir': '/home/lmpizarro/python/materiales/espresso-5.2.1/atomic/examples/pseudo-LDA-0.5/',
-        'outdir': '/home/lmpizarro/tmp',
+        'outdir': calc_path,
         'iprint': 20,
         'startingwfc': 'random'
     },
@@ -441,7 +460,7 @@ def test_cp():
         'nspin': 1
     },
         'cp': {
-        'nstep': 20,
+        'nstep': 100,
         'dt': 5.0,
         'ion_dynamics': 'none',
         'isave': 20,
@@ -487,7 +506,7 @@ def test_cp():
 
     ce_d = setCell(8, 9.28, [1.73206, 1.09955, 0.0, 0.0, 0.0, ])
 
-    in_d = setInput('cp', 'siliconCp', [
+    in_d = setInput('cp', prefix, [
                     ce_d, ae_d, al_d, inout_d, nums_d, opts_d, field_d, cp_d])
 
     QExmlTree = createXML(in_d)
@@ -497,3 +516,4 @@ def test_cp():
 
 if __name__ == '__main__':
     test_cp()
+    test_scf()
