@@ -56,22 +56,65 @@ def setDegauss(val):
     return getDict('parameter', {'name': 'degauss'}, [str_d])
 
 
-class Options:
+class Field:
+    types = {}
 
-    def getVals(self, dict_):
+    def setParameter(self, val, name, type_):
+        str_d = getDict(type_, {}, [], str(val))
+        return getDict('parameter', {'name': name}, [str_d])
 
-        keys = dict_.keys()
+    def getVals(self, cp_params):
+        cp_keys = cp_params.keys()
 
         list_r = []
-        for k in keys:
-            if k == 'occupations':
-                list_r.append(setOccupations(dict_[k]))
-            elif k == 'smearing':
-                list_r.append(setSmearing(dict_[k]))
-            elif k == 'degauss':
-                list_r.append(setDegauss(dict_[k]))
+        for k in cp_keys:
+            p_d = self.setParameter(cp_params[k], k, self.types[k])
+            list_r.append(p_d)
+        return list_r
 
-        return getDict('field', {'name': 'Options'}, list_r)
+
+class Fields(Field):
+    types = {'nspin': 'integer'}
+
+    def getField(self, params):
+        return getDict('field', {'name': 'Fields'}, self.getVals(params))
+
+
+class CP(Field):
+    types = {
+        'nstep': 'integer',
+        'dt': 'real',
+        'ion_dynamics': 'string',
+        'isave': 'integer',
+        'nr1b': 'integer',
+        'nr2b': 'integer',
+        'nr3b': 'integer',
+        'electron_dynamics': 'string',
+        'electron_damping': 'real',
+        'emass': 'real',
+        'emass_cutoff': 'real',
+        'ndr': 'integer',
+        'ndw': 'integer',
+        'ampre': 'real'
+    }
+
+    def getField(self, params):
+        return getDict('field', {'name': 'CP'}, self.getVals(params))
+
+
+class Options(Field):
+    types = {
+        'degauss': 'real',
+        'smearing': 'string',
+        'occupations': 'string',
+        'nbnd': 'integer',
+        'qcutz': 'real',
+        'q2sigma': 'real',
+        'ecfixed': 'real'
+    }
+
+    def getField(self, params):
+        return getDict('field', {'name': 'Options'}, self.getVals(params))
 
 
 # field  InputOuput
@@ -121,7 +164,10 @@ class InputOutput:
                 list_r.append(setTstress(dict_[k]))
             elif k == 'tprnfor':
                 list_r.append(setTprnfor(dict_[k]))
-        return getDict('field', {'name': 'InputOutput'}, list_r)
+        return list_r
+
+    def getField(self, params):
+        return getDict('field', {'name': 'InputOutput'}, self.getVals(params))
 
 
 # field Numerics
@@ -187,7 +233,10 @@ class Numerics:
                 list_r.append(setMixingBeta(dict_[k]))
             elif k == 'convthreshold':
                 list_r.append(setConvThr(dict_[k]))
-        return getDict('field', {'name': 'Numerics'}, list_r)
+        return list_r
+
+    def getField(self, params):
+        return getDict('field', {'name': 'Numerics'}, self.getVals(params))
 
 
 def setFields(fd):
@@ -199,9 +248,9 @@ def setFields(fd):
     nums = Numerics()
     inout = InputOutput()
     opts = Options()
-    fnums = nums.getVals(fd['numerics'])
-    fios = inout.getVals(fd['inputoutput'])
-    fopts = opts.getVals(fd_opts)
+    fnums = nums.getField(fd['numerics'])
+    fios = inout.getField(fd['inputoutput'])
+    fopts = opts.getField(fd_opts)
 
     return (fios, fnums, fopts)
 
@@ -216,8 +265,9 @@ def setPosition(name, pos):
 
 def setAtomicList(positions):
     ''' nat: number of atoms in the unit cell '''
+    nat = len(positions)
     al_d = getDict('atomic_list',  {'units': 'alat',
-                                    'nat': '2'}, positions)
+                                    'nat': str(nat)}, positions)
     return al_d
 
 
@@ -226,7 +276,7 @@ def setCell(ibrav, alat, celldm):
     for c in celldm:
         celldm_ += str(c) + ' '
     re2_d = getDict('real', {'rank': '1', 'n1': '5',
-                             'n2': '0'}, [], '0.0 0.0 0.0 0.0 0.0')
+                             'n2': '0'}, [], celldm_)
     qe_d = getDict('qecell', {'ibrav': str(ibrav), 'alat': str(alat)}, [re2_d])
     ce_d = getDict('cell', {'type': 'qecell'}, [qe_d])
     return ce_d
@@ -333,56 +383,27 @@ def test_scf():
     writeQe(QExmlTree, 'si.xml')
 
 
-class CP:
-    cp_types = {
-        'nstep': 'integer',
-        'dt': 'real',
-        'ion_dynamics': 'string',
-        'isave': 'integer',
-        'nr1b': 'integer',
-        'nr2b': 'integer',
-        'nr3b': 'integer',
-        'electron_dynamics': 'string',
-        'electron_damping': 'real',
-        'emass': 'real',
-        'emass_cutoff': 'real',
-        'ndr': 'integer',
-        'ndw': 'integer',
-        'ampre': 'real'
-    }
-
-    def setParameter(self, val, name, type_):
-        str_d = getDict(type_, {}, [], val)
-        return getDict('parameter', {'name': name}, [str_d])
-
-    def getVals(self, cp_params):
-        cp_keys = cp_params.keys()
-
-        list_r = []
-        for k in cp_keys:
-            p_d = self.setParameter(cp_params[k], k, self.cp_types[k])
-            list_r.append(p_d)
-        return list_r
-
-
 def test_cp():
     fd = {'numerics': {
         'ecutWfc': 18.0,
-        'diagonalization': 'cg',
-        'mixing_mode': 'plain',
-        'mixing_beta': 0.7,
-        'convthreshold': 1.0E-8,
+        'ecutrho': 150.0,
     },
         'inputoutput': {
         'restart_mode': 'from_scratch',
-            'pseudodir': '/home/lmpizarro/python/materiales/espresso-5.2.1/atomic/examples/pseudo-LDA-0.5/',
-            'outdir': '/home/lmpizarro/tmp',
-            'tstress': 'True',
-            'tprnfor': 'True'},
+        'pseudodir': '/home/lmpizarro/python/materiales/espresso-5.2.1/atomic/examples/pseudo-LDA-0.5/',
+        'outdir': '/home/lmpizarro/tmp',
+        'iprint': 20,
+        'startingwfc': 'random'
+    },
         'options': {
-        'occupations': 'smearing',
-            'smearing': 'marzari-vanderbilt',
-            'degauss': 0.05},
+        'nbnd': 48,
+        'qcutz': 150,
+        'q2sigma': 2.05,
+        'ecfixed': 16.0
+    },
+        'fields': {
+        'nspin': 1
+    },
         'cp': {
         'nstep': 20,
         'dt': 5.0,
@@ -402,10 +423,22 @@ def test_cp():
     }
 
     cp = CP()
+    nums = Numerics()
+    ios = InputOutput()
+    opts = Options()
+    fields = Fields()
 
     cp_params = fd['cp']
+    num_params = fd['numerics']
+    ios_params = fd['inputoutput']
+    opts_params = fd['options']
+    fields_params = fd['fields']
 
-    print cp.getVals(cp_params)
+    print cp.getField(cp_params)
+    print nums.getField(num_params)
+    print ios.getField(ios_params)
+    print opts.getField(opts_params)
+    print fields.getField(fields_params)
 
 if __name__ == '__main__':
     test_scf()
