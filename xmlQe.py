@@ -146,6 +146,16 @@ def setTprnfor(bool_):
     return getDict('parameter', {'name': 'tprnfor'}, [str_d])
 
 
+def setIprint(val):
+    str_d = getDict('integer', {}, [], str(val))
+    return getDict('parameter', {'name': 'iprint'}, [str_d])
+
+
+def setStartingWfc(val):
+    str_d = getDict('string', {}, [], val)
+    return getDict('parameter', {'name': 'startingwfc'}, [str_d])
+
+
 class InputOutput:
 
     def getVals(self, dict_):
@@ -164,6 +174,11 @@ class InputOutput:
                 list_r.append(setTstress(dict_[k]))
             elif k == 'tprnfor':
                 list_r.append(setTprnfor(dict_[k]))
+            elif k == 'iprint':
+                list_r.append(setIprint(dict_[k]))
+            elif k == 'startingwfc':
+                list_r.append(setStartingWfc(dict_[k]))
+
         return list_r
 
     def getField(self, params):
@@ -176,6 +191,12 @@ def setEcutWfc(ecut):
     ''' ecutwfc: kinetic energy cutoff for WAVEFUNCTION [in Ry] '''
     str_d = getDict('real', {}, [], str(ecut))
     return getDict('parameter', {'name': 'ecutwfc'}, [str_d])
+
+
+def setEcutRho(ecut):
+    ''' ecutwfc: kinetic energy cutoff for WAVEFUNCTION [in Ry] '''
+    str_d = getDict('real', {}, [], str(ecut))
+    return getDict('parameter', {'name': 'ecutrho'}, [str_d])
 
 
 def setDiagonalization(diag):
@@ -225,6 +246,8 @@ class Numerics:
         for k in keys:
             if k == 'ecutWfc':
                 list_r.append(setEcutWfc(dict_[k]))
+            if k == 'ecutrho':
+                list_r.append(setEcutRho(dict_[k]))
             elif k == 'diagonalization':
                 list_r.append(setDiagonalization(dict_[k]))
             elif k == 'mixing_mode':
@@ -263,7 +286,7 @@ def setPosition(name, pos):
     return sp_d
 
 
-def setAtomicList(positions):
+def setAtomicList(positions, units):
     ''' nat: number of atoms in the unit cell '''
     nat = len(positions)
     al_d = getDict('atomic_list',  {'units': 'alat',
@@ -283,11 +306,11 @@ def setCell(ibrav, alat, celldm):
 
 
 def setInput(calculation, prefix, elements):
-    if calculation not in ['scf']:
+    if calculation not in ['scf', 'cp']:
         raise qeError("Calculation error")
     else:
-        in_d = getDict('input', {'calculation': 'scf',
-                                 'prefix': 'silicon'}, elements)
+        in_d = getDict('input', {'calculation': calculation,
+                                 'prefix': prefix}, elements)
     return in_d
 
 
@@ -371,7 +394,7 @@ def test_scf():
     pos_si1 = setPosition('Si', [0.0, 0.0, 0.0])
     pos_si2 = setPosition('Al', [0.25, 0.25, 0.25])
 
-    al_d = setAtomicList([pos_si1, pos_si2])
+    al_d = setAtomicList([pos_si1, pos_si2], 'alat')
 
     ce_d = setCell(2, 10.2, [0.0, 0.0, 0.0, 0.0, 0.0, ])
 
@@ -383,9 +406,22 @@ def test_scf():
     writeQe(QExmlTree, 'si.xml')
 
 
+def readPositions(filename):
+    f = open(filename)
+    pos_l = f.readlines()
+    f.close()
+    pos = []
+
+    for l in pos_l:
+        s = l.split()
+        pos.append(setPosition(s[0], [s[1], s[2], s[3]]))
+
+    return pos
+
+
 def test_cp():
     fd = {'numerics': {
-        'ecutWfc': 18.0,
+        'ecutWfc': 20.0,
         'ecutrho': 150.0,
     },
         'inputoutput': {
@@ -434,11 +470,30 @@ def test_cp():
     opts_params = fd['options']
     fields_params = fd['fields']
 
-    print cp.getField(cp_params)
-    print nums.getField(num_params)
-    print ios.getField(ios_params)
-    print opts.getField(opts_params)
-    print fields.getField(fields_params)
+    inout_d = ios.getField(ios_params)
+    nums_d = nums.getField(num_params)
+    opts_d = opts.getField(opts_params)
+    field_d = fields.getField(fields_params)
+    cp_d = cp.getField(cp_params)
+
+    especies = [{'name': 'O', 'pseudofile': 'O.pz-rrkjus.UPF', 'mass': 16.086},
+                {'name': 'Si', 'pseudofile': 'Si.pz-vbc.UPF', 'mass': 28.086},
+                ]
+
+    ae_d = setAtomicSpecies(especies)
+
+    positions = readPositions('cpsio2pos.txt')
+    al_d = setAtomicList(positions, 'bohr')
+
+    ce_d = setCell(8, 9.28, [1.73206, 1.09955, 0.0, 0.0, 0.0, ])
+
+    in_d = setInput('cp', 'siliconCp', [
+                    ce_d, ae_d, al_d, inout_d, nums_d, opts_d, field_d, cp_d])
+
+    QExmlTree = createXML(in_d)
+
+    writeQe(QExmlTree, 'sio2cp.xml')
+
 
 if __name__ == '__main__':
-    test_scf()
+    test_cp()
