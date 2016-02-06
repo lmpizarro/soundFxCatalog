@@ -40,11 +40,11 @@ k_points = {'type': 'tpiba', 'npoints': 10, 'text': '''
 0.3750000  0.3750000  0.6250000   3.00'''}
 
 
-def example01():
+def example01(diag):
 
     PSEUDODIR = '/home/lmpizarro/python/materiales/espresso-5.2.1/atomic/examples/pseudo-LDA-0.5/'
 
-    PREFIX = 'silicon'
+    PREFIX = 'silicon%s'%diag
 
     root_calc = os.getenv('HOME')
 
@@ -56,7 +56,7 @@ def example01():
 
     fd = {'numerics': {
         'ecutWfc': 18.0,
-        'diagonalization': 'cg',
+        'diagonalization': diag,
         'mixing_mode': 'plain',
         'mixing_beta': 0.7,
         'convthreshold': 1.0E-8,
@@ -93,8 +93,11 @@ def example01():
 
     QExmlTree = xq.createXML(in_d)
 
-    xq.writeQe(QExmlTree, 'si.xml')
+    xq.writeQe(QExmlTree, 'si.scf.%s.xml'%diag)
 
 
 if __name__ == '__main__':
-    example01()
+    diago=['cg', 'david']
+
+    for d in diago:
+        example01(d)
