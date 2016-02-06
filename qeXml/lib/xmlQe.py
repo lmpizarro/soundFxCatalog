@@ -40,22 +40,6 @@ def getDict(element, attrib, elements, text=''):
 
 # field Options
 
-
-def setOccupations(val):
-    str_d = getDict('string', {}, [], val)
-    return getDict('parameter', {'name': 'occupations'}, [str_d])
-
-
-def setSmearing(val):
-    str_d = getDict('string', {}, [], val)
-    return getDict('parameter', {'name': 'smearing'}, [str_d])
-
-
-def setDegauss(val):
-    str_d = getDict('real', {}, [], str(val))
-    return getDict('parameter', {'name': 'degauss'}, [str_d])
-
-
 class Field:
     types = {}
 
