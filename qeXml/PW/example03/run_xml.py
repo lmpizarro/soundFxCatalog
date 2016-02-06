@@ -27,10 +27,14 @@ def setFields(fd):
 
     return (fios, fnums, fmd)
 
-k_points = {'type': 'automatic', 'npoints': 0, 'text': '1 1 1 0 0 0'}
+k_points1 = {'type': 'automatic', 'npoints': 0, 'text': '1 1 1 0 0 0'}
+k_points2 = {'type': 'tpiba', 'npoints': 4, 'text': '''0.0 0.0 0.0 1.0
+                       				 1.0 0.0 0.0 1.0
+		         			 0.0 1.0 0.0 1.0
+			        		 0.0 0.0 1.0 1.0'''}
 
 
-def example03(val):
+def example03(val, positions, ibrav, k_points):
 
     PSEUDODIR = '/home/lmpizarro/python/materiales/espresso-5.2.1/atomic/examples/pseudo-LDA-0.5/'
 
@@ -61,8 +65,8 @@ def example03(val):
             'nstep': 100,
 	    'pot_extrapolation': 'second-order',
 	    'wfc_extrapolation': 'second-order'
-		}
 	}
+    }
 
     (inout, nums, fmd) = setFields(fd)
 
@@ -72,12 +76,10 @@ def example03(val):
 
     k_p_d = xq.setK_points(k_points)
 
-    pos_si1 = xq.setPosition('Si', [-0.123, -0.123, -0.123])
-    pos_si2 = xq.setPosition('Si', [0.123, 0.123, 0.123])
 
-    al_d = xq.setAtomicList([pos_si1, pos_si2], 'alat')
+    al_d = xq.setAtomicList(positions, 'alat')
 
-    ce_d = xq.setCell(2, 10.18, [0.0, 0.0, 0.0, 0.0, 0.0, ])
+    ce_d = xq.setCell(ibrav, 10.18, [0.0, 0.0, 0.0, 0.0, 0.0, ])
 
     in_d = xq.setInput('md', PREFIX, [
         ce_d, ae_d, al_d, inout, nums, fmd, k_p_d])
@@ -88,4 +90,7 @@ def example03(val):
 
 
 if __name__ == '__main__':
-    example03('md2')
+    positions = xq.readPositions('mdsipos.txt')
+    example03('md2', positions[:2], 2, k_points1)
+    example03('md8', positions, 1, k_points1)
+    example03('md2_G3X', positions[:2], 2, k_points2)
