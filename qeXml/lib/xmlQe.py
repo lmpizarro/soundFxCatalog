@@ -116,6 +116,17 @@ class Options(Field):
     def getField(self, params):
         return getDict('field', {'name': 'Options'}, self.getVals(params))
 
+class MD(Field):
+    types = {
+        'dt':'real',
+	'nstep':'integer',
+        'pot_extrapolation':'string',
+        'wfc_extrapolation':'string'
+    }
+    def getField(self, params):
+        return getDict('field', {'name': 'MD'}, self.getVals(params))
+
+
 
 # field  InputOuput
 
@@ -155,6 +166,9 @@ def setStartingWfc(val):
     str_d = getDict('string', {}, [], val)
     return getDict('parameter', {'name': 'startingwfc'}, [str_d])
 
+def setDisk_Io(val):
+    str_d = getDict('string', {}, [], val)
+    return getDict('parameter', {'name': 'disk_io'}, [str_d])
 
 class InputOutput:
 
@@ -178,6 +192,9 @@ class InputOutput:
                 list_r.append(setIprint(dict_[k]))
             elif k == 'startingwfc':
                 list_r.append(setStartingWfc(dict_[k]))
+            elif k == 'disk_io':
+                list_r.append(setDisk_Io(dict_[k]))
+
 
         return list_r
 
@@ -236,6 +253,11 @@ def setConvThr(thr):
     return getDict('parameter', {'name': 'conv_thr'}, [str_d])
 
 
+def setNoSym(bool_):
+    thr_ = str(bool_)
+    str_d = getDict('logical', {}, [], thr_)
+    return getDict('parameter', {'name': 'nosym'}, [str_d])
+
 class Numerics:
 
     def getVals(self, dict_):
@@ -256,6 +278,8 @@ class Numerics:
                 list_r.append(setMixingBeta(dict_[k]))
             elif k == 'convthreshold':
                 list_r.append(setConvThr(dict_[k]))
+            elif k == 'nosym':
+                list_r.append(setNoSym(dict_[k]))
         return list_r
 
     def getField(self, params):
@@ -290,7 +314,7 @@ def setCell(ibrav, alat, celldm):
 
 
 def setInput(calculation, prefix, elements):
-    if calculation not in ['scf', 'cp']:
+    if calculation not in ['scf', 'cp', 'md']:
         raise qeError("Calculation error")
     else:
         in_d = getDict('input', {'calculation': calculation,
