@@ -270,7 +270,9 @@ class Numerics:
         return getDict('field', {'name': 'Numerics'}, self.getVals(params))
 
 
-def setPosition(name, pos):
+def setPosition(pos_d):
+    name = pos_d['name']
+    pos = pos_d['position']
     str_pos = str(pos[0]) + ' ' + str(pos[1]) + ' ' + str(pos[2])
     re1_d = getDict('real', {'rank': '1', 'n1': '3', 'n2': '0'}, [], str_pos)
     p1_d = getDict('position', {}, [re1_d])
@@ -406,8 +408,9 @@ def test_scf():
 
     k_p_d = setK_points(k_points)
 
-    pos_si1 = setPosition('Si', [0.0, 0.0, 0.0])
-    pos_si2 = setPosition('Al', [0.25, 0.25, 0.25])
+    positions = [{'name':'Si', 'position':[0.0, 0.0, 0.0]}, {'name':'Al', 'position':[0.25, 0.25, 0.25]}]
+    pos_si1 = setPosition(positions[0])
+    pos_si2 = setPosition(positions[1])
 
     al_d = setAtomicList([pos_si1, pos_si2], 'alat')
 
@@ -429,7 +432,8 @@ def readPositions(filename):
 
     for l in pos_l:
         s = l.split()
-        pos.append(setPosition(s[0], [s[1], s[2], s[3]]))
+	pos_d ={'name': s[0], 'position': [s[1], s[2], s[3]]}
+        pos.append(setPosition(pos_d))
 
     return pos
 

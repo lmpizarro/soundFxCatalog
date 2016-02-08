@@ -81,8 +81,9 @@ def example01(diag):
 
     k_p_d = xq.setK_points(k_points)
 
-    pos_si1 = xq.setPosition('Si', [0.0, 0.0, 0.0])
-    pos_si2 = xq.setPosition('Si', [0.25, 0.25, 0.25])
+    positions =[{'name':'Si', 'position':[0.0, 0.0, 0.0]},{'name':'Si', 'position':[0.25, 0.25, 0.25]}]
+    pos_si1 = xq.setPosition(positions[0])
+    pos_si2 = xq.setPosition(positions[1])
 
     al_d = xq.setAtomicList([pos_si1, pos_si2], 'alat')
 

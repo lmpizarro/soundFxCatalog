@@ -33,7 +33,6 @@ k_points2 = {'type': 'tpiba', 'npoints': 4, 'text': '''0.0 0.0 0.0 1.0
 		         			 0.0 1.0 0.0 1.0
 			        		 0.0 0.0 1.0 1.0'''}
 
-
 def example03(val, positions, ibrav, k_points):
 
     PSEUDODIR = '/home/lmpizarro/python/materiales/espresso-5.2.1/atomic/examples/pseudo-LDA-0.5/'
@@ -75,7 +74,6 @@ def example03(val, positions, ibrav, k_points):
     ae_d = xq.setAtomicSpecies(especies)
 
     k_p_d = xq.setK_points(k_points)
-
 
     al_d = xq.setAtomicList(positions, 'alat')
 
